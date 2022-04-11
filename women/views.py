@@ -13,7 +13,15 @@ menu = [{'title': 'О сайте', 'url_name': 'about_url'},
 def main(request):
     title = 'Главная страница'
     posts = Women.objects.all()
-    return render(request, 'women/index.html', context={'title':title, 'menu':menu, 'posts':posts})
+    categories = Category.objects.all()
+    category_selected = 0
+    context = {'title':title,
+                'menu':menu,
+                'posts':posts,
+                'categories':categories,
+                'category_selected':category_selected
+    }
+    return render(request, 'women/index.html', context=context)
 
 def about(request):
     title = 'О сайте'
@@ -40,3 +48,9 @@ def show_post(request, post_id):
     woman = Women.objects.get(pk=post_id)
     context = {'woman':woman}
     return render(request, 'women/about.html', context=context)
+
+
+def show_category(request, cat_id):
+    category = Category.objects.get(pk=cat_id)
+    return HttpResponse(f"Список статей категории {category.name}")
+    # return render(request, 'women/category.html', context={'categories':category})
