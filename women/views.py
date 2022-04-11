@@ -9,6 +9,9 @@ menu = [{'title': 'О сайте', 'url_name': 'about_url'},
         {'title': 'Войти', 'url_name': 'login'}
 ]
 
+def page_not_found(request):
+    return HttpResponse("4 0 4 Страница не найдена")
+
 
 def main(request):
     title = 'Главная страница'
@@ -31,9 +34,15 @@ def post_detail(request, slug):
     woman_content = Women.objects.filter()
     return render(request, 'women/post_detail.html')
 
-def categories(request, category_number):
-    print(request.GET)
-    return HttpResponse(f'<h3>Category number is {category_number}</h3>')
+def by_category(request, cat_id):
+    categories = Category.objects.all()
+    posts = Women.objects.filter(category=cat_id)
+    category_selected = cat_id
+    if len(posts) < 1:
+        return page_not_found(request)
+    else:
+        return render(request, 'women/index.html', context={"posts":posts, "category_selected":category_selected,
+        "categories":categories})
 
 def add_page(request):
     return HttpResponse('Add new page')
@@ -49,8 +58,3 @@ def show_post(request, post_id):
     context = {'woman':woman}
     return render(request, 'women/about.html', context=context)
 
-
-def show_category(request, cat_id):
-    category = Category.objects.get(pk=cat_id)
-    return HttpResponse(f"Список статей категории {category.name}")
-    # return render(request, 'women/category.html', context={'categories':category})

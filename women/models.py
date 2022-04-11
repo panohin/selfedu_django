@@ -18,7 +18,7 @@ class Women(models.Model):
         return reverse('post', kwargs={'post_id':self.pk})
 
     class Meta:
-        ordering = ['-time_create']
+        ordering = ['-time_update']
 
 
 class Category(models.Model):
@@ -29,7 +29,7 @@ class Category(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return reverse('category_url', kwargs={'cat_id':category.pk})
+        return reverse('by_category_url', kwargs={'cat_id':self.pk})
 
     class Meta:
         ordering = ['name']
