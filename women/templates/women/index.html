@@ -1,5 +1,7 @@
 {% extends 'women/base.html' %}
 
+{% block title %}{{ title }}{% endblock %}
+
 {% block content %}
 <ul class="list-articles">
 	{% for p in posts %}
@@ -13,7 +15,6 @@
 	{% endif %}
 	</li>
 			<li><h2>{{p.title}}</h2>
-			
 	{% autoescape on %}
 	{{p.content|linebreaks|truncatewords:50}}
 	{% endautoescape %}

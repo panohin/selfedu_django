@@ -1,5 +1,6 @@
 {% load static %}
 {% load women_tags %}
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -16,6 +17,7 @@
 		<div class="header">
 			<ul id="mainmenu" class="mainmenu">
 			<li class="logo"><a href="{% url 'main_url' %}"><div class="logo"></div></a></li>
+{% get_menu as menu %}
 {% for m in menu %}
 	{% if not forloop.last %}
 			<li><a href="{% url m.url_name %}">{{m.title}}</a></li>
@@ -35,18 +37,19 @@
 	<td valign="top" class="left-chapters">
 	<ul id="leftchapters">
 		{% if category_selected == 0 %}
-		<li class="selected">Все категории</li>
-	{% else %}
-	<li><a href="{% url 'main_url' %}">Все категории</a></li>
-	{% endif %}
-	{% show_cats as cats %}
+			<li class="selected">Все категории</li>
+		{% else %}
+			<li><a href="{% url 'main_url' %}">Все категории</a></li>
+		{% endif %}
+	{% get_all_categories as cats %}
 	{% for cat in cats %}
 	{% if cat.id == category_selected %}
-	<li>{{ cat.name }}</li>
+		<li>{{ cat.name }}</li>
 	{% else %}
-	<li><a href="{{ cat.get_absolute_url }}"></a></li>
+		<li><a href="{{ cat.get_absolute_url }}">{{ cat.name }}</a></li>
 	{% endif %}
 	{% endfor %}
+	
 		<li class="share">
 		<p>Наш канал</p>
 		<a class="share-yt" href="https://www.youtube.com/channel/UClJzWfGWuGJL2t-3dYKcHTA/playlists" target="_blank" rel="nofollow"></a>
@@ -60,10 +63,10 @@
 	{% endblock %}
 
 <!-- Блок контента -->
-	<div class="content-text">
+	<!-- <div class="content-text"> -->
 {% block content %}
 {% endblock %}
-	</div>
+	<!-- </div> -->
 <!-- Конец блока контента -->
 
 </td></tr></table>
