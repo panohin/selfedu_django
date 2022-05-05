@@ -18,7 +18,6 @@ def show_cats():
 def get_menu():
 	menu = [{'title': 'О сайте', 'url_name': 'about_url'},
         {'title': 'Добавить статью', 'url_name': 'add_page_url'},
-        {'title': 'Обратная связь', 'url_name': 'contact'},
-        {'title': 'Войти', 'url_name': 'login'}
-	]
+        {'title': 'Обратная связь', 'url_name': 'contact_url'},
+    ]
 	return menu

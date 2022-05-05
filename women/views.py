@@ -1,111 +1,116 @@
+from multiprocessing import AuthenticationError
+from re import template
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
-from django.views.generic import View, ListView
+from django.views.generic import View, ListView, DetailView, CreateView, FormView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.contrib.auth import logout, login
+from django.urls import reverse_lazy
+from django.core.paginator import Paginator
+from django.contrib.auth.views import LoginView
 
-from .utils import IndexMixin
+from .utils import IndexMixin, DataMixin
 from .models import Women, Category
-from .forms import AddPageForm
-
-menu = [{'title': 'О сайте', 'url_name': 'about_url'},
-        {'title': 'Добавить статью', 'url_name': 'add_page_url'},
-        {'title': 'Обратная связь', 'url_name': 'contact'},
-        {'title': 'Войти', 'url_name': 'login'}
-]
+from .forms import AddPageForm, RegisterUserForm, UserLoginForm, ContactForm
 
 def page_not_found(request):
     return HttpResponse("4 0 4 Страница не найдена")
 
-# def main(request):
-#     title = 'Главная страница'
-#     posts = Women.objects.all()
-#     categories = Category.objects.all()
-#     category_selected = 0
-#     context = {'title':title,
-#                 # 'menu':menu,
-#                 'posts':posts,
-#                 'categories':categories,
-#                 'category_selected':category_selected
-#     }
-#     return render(request, 'women/index.html', context=context)
-
-# def by_category(request, slug):
-#     cat_id = Category.objects.get(slug=slug).id
-#     categories = Category.objects.all()
-#     title = f"Статьи рубрики '{Category.objects.get(pk=cat_id).name}'"
-#     posts = Women.objects.filter(category=cat_id)
-#     category_selected = cat_id
-#     context={"posts":posts, "category_selected":category_selected,
-#         "categories":categories, 'title':title, 'menu':menu}
-#     if len(posts) < 1:
-#         return page_not_found(request)
-#     else:
-#         return render(request, 'women/index.html', context=context)
-
-
 def about(request):
     title = 'О сайте'
-    return render(request, 'women/about.html', {'title':title, 'menu':menu})
+    return render(request, 'women/about.html', {'title':title})
 
-def post_detail(request, slug):
-    woman_content = Women.objects.filter()
-    return render(request, 'women/post_detail.html')
-
-
-def add_page(request):
-    if request.POST:
-        form = AddPageForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            return redirect('main_url')
-        else:
-            return HttpResponse('Ошибка создания статьи')
-    else:
-        form = AddPageForm()
-        context = {'form': form, 'menu':menu}
-        return render(request, 'women/add_page.html', context=context)
+def paginator(request):
+    title = 'Пример испрользования пагинатора в функции-представлении'
+    contact_list = Women.objects.all()
+    paginator = Paginator(contact_list, 3)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'women/about.html', {'title':title, 'page_obj':page_obj})
 
 def contact(request):
     return HttpResponse('Contact info')
 
+def logout_user(request):
+    logout(request)
+    return redirect('main_url')
 
-def login(request):
-    return HttpResponse('Log in page')
-    
-def show_post(request, slug):
-    post = get_object_or_404(Women, slug=slug)
-    context = {'post': post}
-    return render(request, 'women/post_detail.html', context=context)
-
-def example(request):
-    return render(request, 'women/example.html')
-
-
-class Main(ListView):
+class Main(DataMixin, ListView):
     model = Women
     template_name = 'women/index.html'
     context_object_name = 'posts'
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Главная страница'
-        context['category_selected'] = 0
-        return context
+        c_def = self.get_user_context(title='Главная страница')
+        return context | c_def
 
     def get_queryset(self):
-        return Women.objects.filter(is_published=True)
+        return Women.objects.filter(is_published=True).select_related('category')
 
-class ByCategory(ListView):
+class ByCategory(DataMixin, ListView):
     model = Women
     template_name = 'women/index.html'
     context_object_name = 'posts'
-    allow_empty = False 
+    allow_empty = False
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Объявления рубрики ' + str(context['posts'][0].category)
-        context['category_selected'] = context['posts'][0].category.id
-        return context
-
-    
+        category = Category.objects.get(slug=self.kwargs['slug'])
+        c_def = self.get_user_context(title='Категория - ' + str(category.name), cat_selected=category.pk)
+        return context | c_def
+  
     def get_queryset(self):
-        return Women.objects.filter(category__slug=self.kwargs['slug'])
+        return Women.objects.filter(category__slug=self.kwargs['slug'], is_published=True).select_related('category')
+
+class ShowPost(DetailView):
+    model = Women
+    template_name = 'women/post_detail.html'
+    context_object_name = 'post'
+
+class AddPage(LoginRequiredMixin, CreateView):
+    form_class = AddPageForm
+    template_name = 'women/add_page.html'
+    success_url = reverse_lazy('main_url')
+    login_url = reverse_lazy('main_url')
+    
+class RegisterUser(DataMixin, CreateView):
+    form_class = RegisterUserForm
+    template_name = 'women/register.html'
+    success_url = reverse_lazy('main_url')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title="Регистрация")
+        return context | c_def
+
+    def form_valid(self, form):
+        user = form.save()
+        login(self.request, user)
+        return redirect('main_url')
+
+class LoginUser(DataMixin, LoginView):
+    # form_class = UserLoginForm
+    form_class = UserLoginForm
+    template_name = 'women/login.html'
+    
+    def get_success_url(self):
+        return reverse_lazy('main_url')
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title='Авторизация')
+        return context | c_def
+
+class ContactView(DataMixin, FormView):
+    form_class = ContactForm
+    template_name = 'women/contact.html'
+    success_url = reverse_lazy('main_url')
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title='Обратная связь')
+        return context | c_def
+    def form_valid(self, form):
+        return redirect('main_url')
